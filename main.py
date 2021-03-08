@@ -1,5 +1,6 @@
 import json
 from numpy import random
+from random import randint
 from typing import Dict, List
 
 
@@ -40,13 +41,14 @@ def init_poids(dimEntree: int, dimSortie: int) -> List:
     return [[(100*random.random()-50) for n in range(dimSortie)] for i in range(dimEntree)]
 
 
-def calcul_neurone(j: int, e: List, poids):
+def calcul_neurone(j, e, poids):
     result = 0
-    for i in range(len(e)):
-        result += e[i] * poids[i][j]
-        # resultat = int(result > 0)
-
-    return result
+    for i in range(len(e)): # basically 30 cause weighted 'link' to  neuron for each position
+        # 30x10 ==> premier element = poids de chaque case pour le neurone 1
+        # representer la matrice ==> on prend la colonne j et on itere sur les lignes
+        result += e[i]*poids[i][j]
+        resultat = int(result > 0)
+    return resultat
 
 
 def calcul_reseau(e, poids):
@@ -72,6 +74,52 @@ def apprendre(d, poids):
         for number_specific in d[key]:  # give every number example to the enctrance to the neuron
             apprendre_reseau(number_specific, poids, key)
 
+# codigo de mateo me ha dado palo rehacerlo
+def saisir_chiffre_matrice():
+    lst = [[0,0,0,0,0],
+           [0,0,0,0,0],
+           [0,0,0,0,0],
+           [0,0,0,0,0],
+           [0,0,0,0,0],
+           [0,0,0,0,0]]
+    ipt = ""
+    print("Please insert binaries to create a number in a 6x5 matrix")
+    for ligne in range(6):
+        for colonne in range(5):
+            while True:
+                try:
+                    ipt = input()
+                    if ipt != '1' and ipt != '0':
+                        raise ValueError
+                except:
+                    print('Only binaries are accepted', end='\ ')
+                    print('Please start again')
+                else:
+                    lst[ligne][colonne] = eval(ipt)
+                    break
+    return lst
+
+
+def generate_matrix_number(dictionnary: Dict):
+    print('Please enter a number between or equal to 0 and 9')
+    while True:
+        try:
+            number = input()
+            if len(number) > 1:
+                raise ValueError
+        except:
+            print('Please enter a number between or equal to 0 and 9')
+        else:
+            rand = randint(0, len(dictionnary[eval(number)])-1)
+            return dictionnary[eval(number)][rand]
+
+
+def noise(matrice):
+    rand = randint(0, 29)
+    matrice[rand] = 0 if matrice[rand] == 1 else 1
+
+    return matrice
+
 
 def main():
     d = structuration_donnees()
@@ -82,5 +130,9 @@ def main():
     flat_input = noise(generate_matrix_number(d))
     output = calcul_reseau(flat_input, poids_neurones)
     print(output)
+
+
+if __name__ == '__main__':
+    main()
 
 
