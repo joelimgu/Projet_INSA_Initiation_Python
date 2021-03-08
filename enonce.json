@@ -1,0 +1,581 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Introduction"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "« *Un réseau de neurones artificiels est un modèle de calcul dont la conception est très schématiquement inspirée du fonctionnement des neurones biologiques.* »\n",
+    "\n",
+    "Source : https://fr.wikipedia.org/wiki/Réseau_de_neurones_artificiels \n",
+    "\n",
+    "Dans ce TP, nous allons illustrer le fonctionnement d'un réseau de neurones destiné à la reconnaissance de caractères (ici des chiffres de 0 à 9)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Fonctionnement"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<img src=\"https://github.com/PlantecJY/python-mic/raw/master/rdn.png\" alt=\"Drawing\" style=\"width: 200px;\"/>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "La figure ci-dessus schématise un réseau de neurones artificiel. Il est constitué de neurones reliés entre eux et figurés par des cercles de couleur.\n",
+    "\n",
+    "Un neurone de base (cercle bleu) possède plusieurs entrées par lesquelles il reçoit un signal issu d'autres neurones et plusieurs sorties par lesquelles il peut sous certaines conditions émettre un signal vers d'autres neurones. \n",
+    "\n",
+    "Certains neurones – les neurones d'entrée (cercles verts) – sont activés en recevant une information directement depuis l'extérieur. Les neurones de sortie (ici, un seul cercle jaune), quant à eux, ne sont pas nécessairement du même nombre que les neurones d'entrée ; on s'intéresse seulement à leur état, car il ne retransmettent pas d'information.\n",
+    "\n",
+    "Le neurone est conçu comme un automate doté d'une fonction de transfert qui transforme ses entrées notéesxien une sortie selon des règles précises. \n",
+    "\n",
+    "Dans le modèle élémentaire que nous allons mettre en œuvre, l'information qui parcourt une entrée vaut 0 (pas de signal) ou 1 (un signal). Le neurone effectue une somme pondérée – on parle de « poids synaptique » – de chacune de ses entrées (en effet, l'efficacité de la transmission des signaux d'un neurone à l'autre peut varier), compare la somme résultante à une valeur seuil, et si cette somme est supérieure ou égale à ce seuil, il s'active et émet un signal (modèle ultra-simplifié du fonctionnement d'un neurone biologique) ; dans le cas contraire, il reste inactif.\n",
+    "\n",
+    "Le seuil de chaque neurone ainsi que la valeur des poids synaptiques wij sont donc des paramètres importants du réseau : selon les informations d'entrée (dans ce TP, un pattern de 0 et de 1), les neurones de sortie seront activés ou pas. Le réseau est donc un outil permettant d'opérer une classification des patterns qui lui sont soumis ; notons que plusieurs patterns d'entrée différents peuvent conduire au même pattern de sortie.\n",
+    "\n",
+    "L'idée est de choisir ces poids et ce seuil de telle façon que la classification opérée par le réseau soit aussi proche que possible de celle voulue par le concepteur. C’est ce qu'on nomme la phase d’apprentissage du réseau. Pour un réseau de neurones formels, apprendre revient donc à déterminer le jeu de coefficients synaptiques permettant de classifier les données présentées ; lorsque ce jeu est déterminé, il est attendu du réseau qu'il classifie correctement une nouvelle entrée.\n",
+    "\n",
+    "Dans un modèle plus riche, le neurone fonctionne avec des nombres réels (souvent compris dans l’intervalle [0,1] ou [-1,1])."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Exemple choisi"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Nous vous proposons d'étudier un réseau de neurones destiné à la reconnaissance de chiffres.\n",
+    "Le réseau possède 30 neurones d'entrée auxquels sont soumis des patterns de 30 informations binaires correspondant aux pixels parcourus de gauche à droite, ligne par ligne. Dans la figure ci-dessous, c'est le pattern correspondant au chiffre 1 qui est envoyé.\n",
+    "\n",
+    "<img src=\"https://github.com/PlantecJY/python-mic/raw/master/principe.png\" alt=\"Drawing\" style=\"width: 200px;\"/>\n",
+    "\n",
+    " → 111110000100001000010000100001\n",
+    "\n",
+    "Le réseau possède 10 neurones de sortie correspondant chacun à un chiffre de 0 à 9. En sortie, seul le neurone correspondant au chiffre 1 est actif.\n",
+    "\n",
+    "Le réseau pourra avoir le même comportement pour un pattern d'entrée bruité, mais correspondant toujours au chiffre 1."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Travail à effectuer"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Le programme fait l’objet du présent notebook. Il est découpé en une série de fonctions. Ce découpage vous permet d'avancer progressivement en testant chaque fonction. La réalisation du programme s'appuie sur les résultats des précédentes séances.\n",
+    "\n",
+    "- Structuration des données pour l’apprentissage\n",
+    "- Création du réseau de neurones\n",
+    "- Test du réseau de neurones\n",
+    "- Apprentissage\n",
+    "- Test du réseau de neurones\n",
+    "\n",
+    "Nota : lors de l'examen final, plusieurs questions porteront sur ce projet."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Réalisation"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Structuration des données pour l’apprentissage\n",
+    "Cette étape s'appuie principalement sur le travail effectué lors de la séance numéro 1. Avant tout, assurez-vous d'avoir à disposition votre réponse à la dernière question de cette séance.\n",
+    "\n",
+    "**Exercice** : Créer une fonction nommée *structuration_donnees* qui permet :\n",
+    "- de récupérer des données correspondant aux differentes facons de representer les chiffres ;\n",
+    "- d'applatir ces matrices sous la forme de listes ;\n",
+    "- d'orgasnier ces listes sous la forme d’un dictionnaire.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def structuration_donnees():\n",
+    "    # Algorithme de la fonction :\n",
+    "    # 1. Creation de la variable d correspondant au dictionnaire vide\n",
+    "    # 2. Creation des entrees de ce dictionnaire : chacune des cles correspond a un chiffre\n",
+    "        # Associer a chaque cle une liste vide dans le dictionnaire\n",
+    "    # 3. Pour chaque chiffre, represente par sa matrice :\n",
+    "        # Applatir la matrice avec la fonction flatten_matrice\n",
+    "        # Ajouter la liste obtenue dans la bonne entree du dictionnaire\n",
+    "    # Retour du dictionnaire.\n",
+    "    \n",
+    "    ### START CODE HERE ###\n",
+    "    d = None\n",
+    "    ### END CODE HERE ###\n",
+    "    return d\n",
+    "\n",
+    "d = structuration_donnees()\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Exercice** : Récupérez la fonction *print_matrice* qui permet d'afficher un chiffre un ascii."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def print_matrice(m):\n",
+    "    ### START CODE HERE ###\n",
+    "    pass\n",
+    "    ### END CODE HERE ###\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Test** :"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print_matrice(d[9][2])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Sortie attendue** :\n",
+    "\n",
+    "     ### \n",
+    "    #   #\n",
+    "     ####\n",
+    "        #\n",
+    "        #\n",
+    "    ####"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Création du réseau de neurones"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Cette étape s'appuie principalement sur le travail effectué lors de la séance numéro 2.\n",
+    "Avant tout, assurez-vous d'avoir à disposition votre réponse à la dernière question de cette séance.\n",
+    "\n",
+    "**Exercice** : Créer une fonction nommée *init_poids* qui va créer une matrice qui va contenir les poids du réseau de neurones. Elle accepte deux paramètres qui sont :\n",
+    "- *dimEntree* : le nombre de pixels qui représente le chiffre et\n",
+    "- *dimSortie* : le nombre de sorties du réseau.\n",
+    "\n",
+    "Cette fonction doit réaliser les étapes suivantes :\n",
+    "- créer une matrice poids de dimension *dimEntree* x *dimSortie* ;\n",
+    "- initialiser le contenu de cette matrice avec des valeurs aléatoire comprises entre -50 et 50.\n",
+    "- retourner cette matrice."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from numpy import random\n",
+    "\n",
+    "def init_poids(dimEntree, dimSortie):\n",
+    "    random.seed(2) # NE PAS TOUCHER CETTE LIGNE QUI REND DETERMINISTE LE RESULTAT\n",
+    "    \n",
+    "    ### START CODE HERE ###\n",
+    "    poids = None\n",
+    "    ### END CODE HERE ###\n",
+    "    return poids\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Test** :"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "poids = init_poids(30, 10)\n",
+    "poids[0]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Sortie attendue** :\n",
+    "\n",
+    "      [-6.400509785799628,\n",
+    "       -47.40737681721087,\n",
+    "       4.966247787870913,\n",
+    "       -6.467760738172309,\n",
+    "       -7.963219791251099,\n",
+    "       -16.96651789961259,\n",
+    "       -29.53513659621575,\n",
+    "       11.92709663506637,\n",
+    "       -20.034532632547688,\n",
+    "       -23.317272489713336]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Test du réseau de neurones"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Exercice** : Créer une fonction nommée *calcul_neurone* qui calcule la sortie d'un seul neurone *j* à partir d'une entrée *e* représentant un chiffre et de la matrice *poids*.\n",
+    "\n",
+    "Attention, la sortie pour l'instant n'a aucun lien avec l'entrée car l'apprentissage n'a pas encore eu lieu."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def calcul_neurone(j, e, poids):\n",
+    "    ### START CODE HERE ###\n",
+    "    resultat_j = None\n",
+    "    ### END CODE HERE ###\n",
+    "    return resultat_j\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Test** :"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(calcul_neurone(3, d[9][0], poids))\n",
+    "print(calcul_neurone(9, d[9][0], poids))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Sortie attendue** :"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": true
+   },
+   "source": [
+    "    -123.05645010986458\n",
+    "    91.83223143508798"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Exercice** : Créer une fonction nommée *calcul_reseau* qui calcule toutes les sorties *j* d'un réseau de neurones à partir d'une entrée *e* représentant un chiffre et de la matrice *poids*."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def calcul_reseau(e, poids):\n",
+    "    ### START CODE HERE ###\n",
+    "    resultats = None\n",
+    "    ### END CODE HERE ###\n",
+    "    return resultats\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Test** :"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "calcul_reseau(d[9][0], poids)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Sortie attendue** :"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "    [43.86749469120408,\n",
+    "     -253.71476511397273,\n",
+    "     107.07214011201678,\n",
+    "     -123.05645010986458,\n",
+    "     -122.1205211573054,\n",
+    "     14.24202347465732,\n",
+    "     17.195101727623452,\n",
+    "     47.77513612278679,\n",
+    "     -59.23046233947509,\n",
+    "     91.83223143508798]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Apprentissage\n",
+    "L'apprentissage consiste à ajuster les poids de manière à ce que les sorties du réseau de neurones (calculées par *calcul_reseau*) correspondent bien aux chiffres fournis en entrée du réseau. Cet apprentissage est réalisé itérativement. A chaque itération on va faire progresser les poids, en confrontant les représentations des chiffres du dictionnaire *d* aux sorties calculées. Le nombre d'itérations est ici fixé. De manière imagée, vous aurez trois fonctions à développer, correspondant aux boucles suivantes :\n",
+    "\n",
+    "boucle sur les itérations (*apprendre*)\n",
+    "-> boucle sur les entrees du dictionnaire (*apprendre_reseau*)\n",
+    "-> boucle sur les neurones (*apprendre_neurone*)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Exercice** : Créer une fonction nommée *apprendre_neurone* qui permet à partir d'une entrée *e* représentant un chiffre d'ajuster la matrice *poids* de telle manière que la sortie calculée se rapproche de *1* si le chiffre *e* représente *j* ou de *0* sinon. L'argument *sortie_attendue* contient *1* si le chiffre *e* représente effectivement *j*, *0* sinon.\n",
+    "\n",
+    "Cet apprentissage se base sur la formule suivante que nous vous fournissons, qui ajuste le poids du neurone situé entre la i-ième entrée et la j-ième sortie :\n",
+    "\n",
+    "    poids[i][j] = poids[i][j] + (valeur_desiree - valeur_calculee) * e[i] * h\n",
+    "\n",
+    "La variable *h* est un paramètre d'apprentissage, positif, que nous vous proposons de fixer à *5* et que vous pouvez faire varier.\n",
+    "\n",
+    "Optimiser la matrice *poids* de telle façon que les sorties calculées la fonction *calcul_reseau* correspondent aux chiffres du dictionnaire."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def apprendre_neurone(e, poids, j, sortie_attendue):\n",
+    "    ### START CODE HERE ###\n",
+    "    h = 5\n",
+    "    # Calcul de la sortie du neurone j, avec l'entree e et la matrice de poids.\n",
+    "    valeur_calculee = None\n",
+    "    # Boucle sur les composantes de e et ajustement des poids correspondant avec la formule donnee.\n",
+    "    for i in []: # A MODIFIER\n",
+    "        # Calcul de la valeur desiree en fonction de sortie attendue.\n",
+    "        valeur_desiree = 0\n",
+    "        if sortie_attendue == j:\n",
+    "            valeur_desiree = 1\n",
+    "        # Actualisation du poids[i][j] (cf. formule precedente).\n",
+    "        poids[i][j] = None\n",
+    "    ### END CODE HERE ###\n",
+    "    return poids\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Exercice** : Créer une fonction nommée *apprendre_reseau* qui permet, à partir d'une entrée *e* représentant un chiffre, d'ajuster la matrice *poids* en invoquant *apprendre_neurone* sur les différents neurones *j* du réseau."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def apprendre_reseau(e, poids, sortie_attendue):\n",
+    "    ### START CODE HERE ###\n",
+    "    pass\n",
+    "    ### END CODE HERE ###\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Exercice** : Créer une fonction nommée *apprendre* qui permet, en bouclant sur les données, d'ajuster la matrice *poids* en invoquant *apprendre_reseau* sur les différentes représentations des chiffres."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def apprendre(d, poids):\n",
+    "    ### START CODE HERE ###\n",
+    "    pass\n",
+    "    ### END CODE HERE ###\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Test du réseau de neurones\n",
+    "Vous disposez à présent des fonctions permettant d'entrainer un réseau de neurones à reconnaître des chiffres à partir d'images simples et de prédire une sortie associée à une entrée au clavier."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Exercice** : Compléter le squelette du programme suivant qui :\n",
+    "- structure les données ;\n",
+    "- créée les poids ;\n",
+    "- créée le réseau de neurones ;\n",
+    "- permet au réseau de neurones d'apprendre à partir des données structurées ;\n",
+    "- permet à l'utilisateur de saisir les entrées à tester."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def main():\n",
+    "    ### START CODE HERE ###\n",
+    "    # Structuration des données\n",
+    "    d = None\n",
+    "    # Création des poids\n",
+    "    poids = None\n",
+    "    # Apprentissage\n",
+    "    poids = None\n",
+    "    # Saisie de l'entree\n",
+    "    strings = None\n",
+    "    # Test de la conformité de la saisie (30 symboles '0' ou '1' séparés par une virgule)\n",
+    "    pass\n",
+    "    # Transformation de la saisie en tableau\n",
+    "    input = None\n",
+    "    # Calcule toutes les sorties du réseau de neurones à partir de l'entrée input\n",
+    "    pass\n",
+    "    # Affichage des sorties\n",
+    "    pass\n",
+    "    ### END CODE HERE ###\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Test** :"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "main()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Optionnel : export jupyter"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.5.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
